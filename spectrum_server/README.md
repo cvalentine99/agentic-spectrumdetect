@@ -8,7 +8,7 @@ It offers functionality to:
 * Tune the radio to a specific center frequency.
 * Query recent measurement results stored in a MongoDB database.
 
-The server is wrapped with **FastMCP**, exposing a Management Control Plane (MCP) for health‑checking and future extensions.
+The server is wrapped with **FastMCP**, exposing a Model Context Protocol (MCP) for health‑checking and future extensions.
 
 ---
 

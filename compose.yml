@@ -1,13 +1,19 @@
 services:
   vllm:
-    build:
-      context: vllm
-      dockerfile: Dockerfile
-    image: vllm:latest
-    container_name: vllm
-    command: serve openai/gpt-oss-20b -tp 1 --tool-call-parser openai --reasoning-parser openai_gptoss --enable-auto-tool-choice --host 0.0.0.0 --port 8888 --max-model-len 131072 --gpu-memory-utilization 0.90 --served-model-name gpt-oss-20b --api-key my-key
+    image: vllm/vllm-openai:latest
+    container_name: vllm  
+    command: >
+      serve --config /models/gpt-oss-20b/vllm_config.yaml
+    runtime: nvidia                     # required for GPU support
+    environment:
+      VLLM_ATTENTION_BACKEND: "TRITON_ATTN" 
+      TIKTOKEN_RS_CACHE_DIR: "/models/gpt-oss-20b/TIKTOKEN/"
+      TIKTOKEN_CACHE_DIR: "/models/gpt-oss-20b/TIKTOKEN/"
+      TIKTOKEN_ENCODINGS_BASE: "/models/gpt-oss-20b/TIKTOKEN/"
     ports:
-      - 8888:8888
+      - "8888:8888"
+    volumes:
+      - "${HOME}/gpt-oss-20b:/models/gpt-oss-20b"
     ipc: host
     deploy:
       resources:
@@ -17,10 +23,10 @@ services:
               capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/metrics"]
-      interval: 5s          # run every 5 seconds
-      timeout: 2s           # give each probe 2 s to answer
+      interval: 10s          # run every 5 seconds
+      timeout: 5s           # give each probe 2 s to answer
       retries: 6            # 6 × 5 s = 30 s before considered unhealthy
-      start_period: 10s     # give the container a little warm‑up time
+      start_period: 60s     # give the container a little warm‑up time
   spectrum_server:
     build:
       context: spectrum_server
@@ -34,10 +40,10 @@ services:
       - 8000:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 5s
-      timeout: 2s
+      interval: 10s
+      timeout: 5s
       retries: 6
-      start_period: 10s
+      start_period: 60s
   agent:
     build:
       context: agent

@@ -6,7 +6,17 @@ This repository contains three tightly‑coupled components that together provid
 |-----------|----------|---------|
 | **tensorrt_yolo_engine (tye)** | C++ / CUDA | High‑performance TensorRT‑accelerated YOLO inference on radio spectrograms. |
 | **agent** | Python | CLI / web UI that talks to the Spectrum Server, enriches commands with an LLM and forwards them to the engine. |
-| **spectrum_server** | Python (FastAPI) | Exposes radio‑control, measurement and MCP (Message Control Protocol) endpoints. |
+| **spectrum_server** | Python (FastAPI) | Exposes radio‑control, measurement and MCP (Model Context Protocol) endpoints. |
+
+**tensorrt_yolo_engine OpenGL GUI**
+![Alt text](https://bucket.ltsnet.net/torchsig/images/gui.jpg)
+
+**Prompt for tensorrt_yolo_engine interaction http://localhost:8001/**
+![Alt text](https://bucket.ltsnet.net/torchsig/images/prompt_tools_example.jpg)
+
+**spectrum_server FastAPI http://localhost:8000/docs#/**
+![Alt text](https://bucket.ltsnet.net/torchsig/images/fastAPI.jpg)
+
 
 The system can operate in **stream mode** (real‑time radio data) or **file mode** (processing SIGMF recordings). Detected events are visualised, stored in MongoDB and can be retuned on‑the‑fly via UDP advertisements.
 
@@ -52,6 +62,14 @@ The system can operate in **stream mode** (real‑time radio data) or **file mod
 | **Python** | `>= 3.12` (for `agent` and `spectrum_server`) |
 | **FastAPI** | `fastapi[all]` (installed via `pyproject.toml`) |
 | **LLM endpoint** | Any OpenAI‑compatible API (e.g., vLLM) |
+
+**VLLM now uses the vllm/vllm-openai:latest contianer**
+1. vllm serve has been set up to serve a pre-downloaded gpt-oss model so that every time the vllm container starts its not downloading the model each time
+2. To download the model first make sure git-lfs is installed and then clone the model: git clone https://huggingface.co/openai/gpt-oss-20b/   
+3. Make a TIKTOKEN directory: mkdir TIKTOKEN
+4. cd to TIKTOKEN and wget https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken && wget https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken   
+5. cp o200k_base.tiktoken fb374d419588a4632f3f557e76b4b70aebbca790 && cp cl100k_base.tiktoken 9b5ad71b2ce5302211f9c61530b329a4922fc6a4
+6. edit the compose.yml to point to where the model and tiktoken files have been downloaded 
 
 ---
 
@@ -116,7 +134,7 @@ asyncio.run(runner.run())
 ```
 
 The Prompt web UI is available at `http://localhost:8001/`.
-The Swagger web UI is available at `http://localhost:8000/docks#/`.
+The Swagger web UI is available at `http://localhost:8000/docs#/`.
 
 ---
 
