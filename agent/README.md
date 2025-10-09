@@ -1,6 +1,6 @@
 # Agentic SpectrumDetect Application
 
-A **FastAPI** based chat application that uses a configurable LLM (via OpenAI‑compatible API) and a custom MCP (Message‑Control‑Protocol) toolset to provide an interactive, AI‑driven spectrum analysis assistant.
+A **FastAPI** based chat application that uses a configurable LLM (via OpenAI‑compatible API) and a custom MCP (Model Context Protocol) toolset to provide an interactive, AI‑driven spectrum analysis assistant.
 
 The repository contains two ways to run the application:
 
