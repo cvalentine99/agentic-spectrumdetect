@@ -1,0 +1,8 @@
+model: /models/gpt-oss-20b/
+tool-call-parser: openai
+reasoning-parser: openai_gptoss 
+enable-auto-tool-choice: true 
+served-model-name: gpt-oss-20b 
+port: 8888 
+api-key: my-key
+host: 0.0.0.0
