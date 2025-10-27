@@ -1,6 +1,6 @@
 services:
   vllm:
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:v0.11.0
     container_name: vllm  
     command: >
       serve --config /models/gpt-oss-20b/vllm_config.yaml

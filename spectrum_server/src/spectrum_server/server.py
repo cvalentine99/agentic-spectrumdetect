@@ -1,6 +1,6 @@
 import sys
 import os
-
+os.environ["FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER"] = 'true'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from spectrum_server.api import radios_work

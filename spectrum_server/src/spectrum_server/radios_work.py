@@ -13,6 +13,7 @@ import struct
 import os
 import json  # added for JSON handling
 import select
+from spectrum_server.settings import config
 
 
 class Radio:
@@ -22,6 +23,10 @@ class Radio:
         try:
             self.hostname = os.environ["HOST_NAME"]
         except KeyError as e:
+            pass
+        try:
+            self.hostname = config.HOST_NAME
+        except KeyError as e:    
             raise EnvironmentError(
                 "HOST_NAME environment variable not set"
             ) from e
@@ -109,32 +114,35 @@ class Radio:
         db = client[target_db]
         collections = db.list_collection_names()
         collections = sorted(collections)
-        collection = db[collections[-1]]
+        try:
+            collection = db[collections[-1]]
     
-        pipeline = [
+            pipeline = [
 
-            {
-              "$match": {
-              "radio_center_freq_hz": center_freq_hz
-                }
-            },
-            {
-              "$match": {
-              "spectrogram_diff":{'$exists':True}
-              }
-            },
-            {
-               "$sort": {
-               "start_time_ns": pymongo.ASCENDING
-               }
-            },
-            {
-                "$limit": 10
-            }     
+                {
+                  "$match": {
+                  "radio_center_freq_hz": center_freq_hz
+                  }
+                },
+                {
+                  "$match": {
+                  "spectrogram_diff":{'$exists':True}
+                  }
+                },
+                {
+                   "$sort": {
+                   "start_time_ns": pymongo.ASCENDING
+                   }
+                },
+                {
+                    "$limit": 30
+                }     
             ]
         
-        db_cursor = collection.aggregate(pipeline)
-        output = mongoOutput(mongoResults=dumps(db_cursor))
+            db_cursor = collection.aggregate(pipeline)
+            output = mongoOutput(mongoResults=dumps(db_cursor))
+        except:
+            output = mongoOutput(mongoResults='')
         return output
         
     def recv_ad(self, ad_port):
