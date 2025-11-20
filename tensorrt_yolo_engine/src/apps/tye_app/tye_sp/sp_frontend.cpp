@@ -39,8 +39,14 @@ sp_frontend::~sp_frontend( void )
 
 bool sp_frontend::start( void )
 {
-    // create the radio
+    // create the radio - type depends on compile-time selection
+#ifdef USE_UHD_B210
+    this_p_radio = new uhd_b210_radio();
+    std::cout << NAME << " :: Using Ettus B210 SDR" << std::endl;
+#else
     this_p_radio = new sh_sm_radio();
+    std::cout << NAME << " :: Using Signal Hound SM series SDR" << std::endl;
+#endif
     if ( this_p_radio == nullptr ) { goto FAILED; }
 
     // start the frontend manager thread

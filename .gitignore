@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# Local Python environments
+venv/
+activate/
+
+# TensorRT build outputs
+tensorrt_yolo_engine/build/
+tensorrt_yolo_engine/bin/

@@ -73,11 +73,37 @@ endif()
 
 if ( ${BUILD_TARGET} STREQUAL "TYE_STREAM_PROCESSOR" )
 
-    find_library( SIGNALHOUND_SM_API NAMES sm_api REQUIRED )
-    if ( SIGNALHOUND_SM_API )
-        message( "-- Found SIGNALHOUND SM API => ${SIGNALHOUND_SM_API}" )
-    else()
-        message( FATAL_ERROR "SIGNALHOUND SM API NOT FOUND !!" )
+    # Radio type selection options
+    option( USE_SIGNALHOUND "Use Signal Hound SM series SDR" OFF )
+    option( USE_UHD_B210 "Use Ettus B210 SDR via UHD" ON )
+
+    # Signal Hound support
+    if ( USE_SIGNALHOUND )
+        find_library( SIGNALHOUND_SM_API NAMES sm_api REQUIRED )
+        if ( SIGNALHOUND_SM_API )
+            message( "-- Found SIGNALHOUND SM API => ${SIGNALHOUND_SM_API}" )
+            add_definitions( -DUSE_SIGNALHOUND )
+        else()
+            message( FATAL_ERROR "SIGNALHOUND SM API NOT FOUND !!" )
+        endif()
+    endif()
+
+    # Ettus UHD support
+    if ( USE_UHD_B210 )
+        find_package( UHD REQUIRED )
+        if ( UHD_FOUND )
+            message( "-- Found UHD => ${UHD_LIBRARIES}" )
+            message( "-- UHD Include Dirs => ${UHD_INCLUDE_DIRS}" )
+            add_definitions( -DUSE_UHD_B210 )
+            include_directories( ${UHD_INCLUDE_DIRS} )
+        else()
+            message( FATAL_ERROR "UHD NOT FOUND !!" )
+        endif()
+    endif()
+
+    # Ensure at least one radio type is selected
+    if ( NOT USE_SIGNALHOUND AND NOT USE_UHD_B210 )
+        message( FATAL_ERROR "At least one radio type must be selected (USE_SIGNALHOUND or USE_UHD_B210)" )
     endif()
 
 endif()
@@ -115,7 +141,16 @@ set( TYE_APP_SRC src/common/cuda/spectrogram/cuda_spectrogram.cu
 
 if ( ${BUILD_TARGET} STREQUAL "TYE_STREAM_PROCESSOR" )
 
-    set( TYE_APP_SRC ${TYE_APP_SRC} src/apps/tye_app/tye_sp/sh_sm_radio.cpp
+    # Add radio driver source files based on selection
+    set( RADIO_SOURCES )
+    if ( USE_SIGNALHOUND )
+        list( APPEND RADIO_SOURCES src/apps/tye_app/tye_sp/sh_sm_radio.cpp )
+    endif()
+    if ( USE_UHD_B210 )
+        list( APPEND RADIO_SOURCES src/apps/tye_app/tye_sp/uhd_b210_radio.cpp )
+    endif()
+
+    set( TYE_APP_SRC ${TYE_APP_SRC} ${RADIO_SOURCES}
                                     src/apps/tye_app/tye_sp/sp_config.cpp
                                     src/apps/tye_app/tye_sp/sp_frontend.cpp
                                     src/apps/tye_app/tye_sp/tye_sp.cpp )
@@ -140,7 +175,15 @@ set( CUDA_LIBS     cufft                 )
 set( TENSORRT_LIBS nvinfer               )
 set( GL_LIBS       GL GLU glfw           )
 set( DB_LIBS       bsoncxx mongocxx      )
-set( RADIO_LIBS    ${SIGNALHOUND_SM_API} )
+
+# Build RADIO_LIBS based on selected radio types
+set( RADIO_LIBS )
+if ( USE_SIGNALHOUND )
+    list( APPEND RADIO_LIBS ${SIGNALHOUND_SM_API} )
+endif()
+if ( USE_UHD_B210 )
+    list( APPEND RADIO_LIBS ${UHD_LIBRARIES} )
+endif()
 
 set( TYE_APP_LIBS ${CUDA_LIBS} ${TENSORRT_LIBS} ${OpenCV_LIBS} ${GL_LIBS} ${DB_LIBS} ${RADIO_LIBS} )
 

@@ -50,7 +50,15 @@
 #include "rapidjson/stringbuffer.h"
 
 #ifdef TYE_STREAM_PROCESSOR
-#include "sm_api.h"
+    #ifdef USE_SIGNALHOUND
+        #include "sm_api.h"
+    #endif
+    #ifdef USE_UHD_B210
+        #include <uhd/usrp/multi_usrp.hpp>
+        #include <uhd/utils/thread.hpp>
+        #include <uhd/utils/safe_main.hpp>
+        #include <uhd/types/tune_request.hpp>
+    #endif
 #endif
 
 //--------------------------------------------------------------------------------------------------------------------------

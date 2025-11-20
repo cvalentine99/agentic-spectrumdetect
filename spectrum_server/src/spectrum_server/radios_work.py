@@ -51,11 +51,10 @@ class Radio:
         or failure based on whether the entire JSON payload was sent.
         """
         try:
-        
-        
             # Receive advertisement
             dst_ip, dst_port = self.recv_ad(61111)
-            dst_port = 63333
+            if not dst_ip or not dst_port:
+                return tuneFrequencyOutput(success=False)
             sample_rate_hz = 50000000
             atten_db = -1 #auto
             ref_level = -20
@@ -72,17 +71,10 @@ class Radio:
             if not ok:
                 return tuneFrequencyOutput(success=False)
 
-            return tuneFrequencyOutput(success=True)        
+            return tuneFrequencyOutput(success=True)
 
         except OSError:
             return tuneFrequencyOutput(success=False)
-        finally:
-            # Ensure the socket is closed even on failure
-            try:
-                sock.close()
-            except Exception:
-                pass
-
 
 
 
@@ -153,11 +145,12 @@ class Radio:
 
         # Set socket options
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setblocking(False)
 
         try:
-            ip = socket.gethostbyname(self.hostname)
-            sock.bind((str(ip), ad_port))
+            # Bind to all interfaces to receive broadcast advertisements from tye_sp
+            sock.bind(("", ad_port))
         except OSError as e:
             print("[FAIL]")
             print(f"Bind error on port {ad_port}: {e}")
@@ -208,8 +201,7 @@ class Radio:
                 continue
 
             print(f"\n[OK] => {data.decode()}")
-            dst_ipaddr = socket.inet_aton(addr[0])  # bytes representation
-            dst_ip = struct.unpack("!I", dst_ipaddr)[0]  # uint32 network order
+            dst_ip = addr[0]
             dst_port = int(msg["retune_port"])
             sock.close()
             return dst_ip, dst_port
@@ -248,9 +240,8 @@ class Radio:
 
         # Send the message
         print(">> SENDING RETUNE MSG ", end="", flush=True)
-        #dst_ip_str = socket.inet_ntoa(struct.pack("!I", dst_ip))
         try:
-            dst_ip_str = str(socket.gethostbyname(self.hostname))
+            dst_ip_str = socket.inet_ntoa(struct.pack("!I", dst_ip)) if isinstance(dst_ip, int) else str(dst_ip)
             sent = sock.sendto(json_msg.encode(), (dst_ip_str, dst_port))
         except OSError as e:
             print("[FAIL]")

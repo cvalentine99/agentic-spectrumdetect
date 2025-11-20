@@ -47,15 +47,32 @@ RUN cd /build && tar -xzf mongo-cxx-driver-r4.1.0.tar.gz
 RUN cd /build/mongo-cxx-driver-r4.1.0/build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 ../
 RUN cd /build/mongo-cxx-driver-r4.1.0/build && make -j32 && make install
 
-RUN cd /build && wget https://signalhound.com/sigdownloads/SDK/signal_hound_sdk_09_11_25.zip && wget https://signalhound.com/sigdownloads/Spike/Spike\(Ubuntu22.04x64\)_4_0_8.zip && \
+# Install UHD (USRP Hardware Driver) for Ettus B210
+RUN apt update && apt install -y \
+    libuhd-dev \
+    uhd-host \
+    libboost-all-dev \
+    && apt-get clean
+
+# Download UHD FPGA images for B200/B210
+RUN uhd_images_downloader -t b2xx
+
+# Optional: Download Signal Hound SDK (can be removed if only using B210)
+# Uncomment these lines if you want Signal Hound support
+# RUN cd /build && wget https://signalhound.com/sigdownloads/SDK/signal_hound_sdk_09_11_25.zip
+
+# Download model file
+RUN cd /build && wget https://signalhound.com/sigdownloads/Spike/Spike\(Ubuntu22.04x64\)_4_0_8.zip && \
     curl -L -o "11s.pt" "https://bucket.ltsnet.net/torchsig/models/11s.pt"
-RUN cd /build && unzip signal_hound_sdk_09_11_25.zip && cd signal_hound_sdk && \
-    cp device_apis/sm_series/lib/linux/Ubuntu\ 18.04/libsm_api.so.2.3.8 /usr/local/lib && \
-    cp device_apis/sm_series/include/sm_api.h /usr/local/include && \
-    cp device_apis/sm_series/lib/linux/sh_usb.rules /etc/udev/rules.d
-RUN cd /usr/local/lib && ln -s libsm_api.so.2.3.8 libsm_api.so.2
-RUN cd /usr/local/lib && ln -s libsm_api.so.2     libsm_api.so
-RUN ldconfig
+
+# Optional: Signal Hound SDK installation (comment out if only using B210)
+# RUN cd /build && unzip signal_hound_sdk_09_11_25.zip && cd signal_hound_sdk && \
+#     cp device_apis/sm_series/lib/linux/Ubuntu\ 18.04/libsm_api.so.2.3.8 /usr/local/lib && \
+#     cp device_apis/sm_series/include/sm_api.h /usr/local/include && \
+#     cp device_apis/sm_series/lib/linux/sh_usb.rules /etc/udev/rules.d
+# RUN cd /usr/local/lib && ln -s libsm_api.so.2.3.8 libsm_api.so.2
+# RUN cd /usr/local/lib && ln -s libsm_api.so.2     libsm_api.so
+# RUN ldconfig
 ADD ./ /build/tensorrt_yolo_engine/
 RUN cd /build/tensorrt_yolo_engine && ./do_run_cmake -t tye_sp -c  /usr/local/cuda-12.9  && cd build && make
 RUN cd /build && yolo settings datasets_dir='./'

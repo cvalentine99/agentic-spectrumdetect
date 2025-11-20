@@ -1,15 +1,40 @@
 services:
   vllm:
     image: vllm/vllm-openai:latest
-    container_name: vllm  
-    command: >
-      serve --config /models/gpt-oss-20b/vllm_config.yaml
-    runtime: nvidia                     # required for GPU support
+    container_name: vllm
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    command:
+      - "--model"
+      - "/models/gpt-oss-20b"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8888"
+      - "--tensor-parallel-size"
+      - "1"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--dtype"
+      - "bfloat16"
+      - "--max-model-len"
+      - "4096"
+      - "--max-num-seqs"
+      - "128"
+      - "--max-num-batched-tokens"
+      - "4096"
+      - "--served-model-name"
+      - "gpt-oss-20b"
+      - "--trust-remote-code"
+      - "--enforce-eager"
+    runtime: nvidia
     environment:
-      VLLM_ATTENTION_BACKEND: "TRITON_ATTN" 
       TIKTOKEN_RS_CACHE_DIR: "/models/gpt-oss-20b/TIKTOKEN/"
       TIKTOKEN_CACHE_DIR: "/models/gpt-oss-20b/TIKTOKEN/"
       TIKTOKEN_ENCODINGS_BASE: "/models/gpt-oss-20b/TIKTOKEN/"
+      TORCH_CUDA_ARCH_LIST: "12.0"
+      PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      TRITON_OVERRIDE_ARCH: "sm120"
+      CUDA_VISIBLE_DEVICES: "0"
     ports:
       - "8888:8888"
     volumes:
@@ -22,28 +47,37 @@ services:
             - driver: nvidia
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/metrics"]
-      interval: 10s          # run every 5 seconds
-      timeout: 5s           # give each probe 2 s to answer
-      retries: 6            # 6 × 5 s = 30 s before considered unhealthy
-      start_period: 60s     # give the container a little warm‑up time
+      test: ["CMD", "curl", "-f", "http://localhost:8888/v1/models"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+
   spectrum_server:
     build:
       context: spectrum_server
       dockerfile: Dockerfile
     image: spectrum_server:latest
     container_name: spectrum_server
+    network_mode: "host"
     command: ["python", "-m", "spectrum_server"]
-    env_file:
-      - env.example
-    ports:
-      - 8000:8000
+    environment:
+      HOST_NAME: "localhost"
+      LLM_API: "http://localhost:8888/v1"
+      LLM_MODEL: "gpt-oss-20b"
+      LLM_API_KEY: "my-key"
+      REASONING_LEVEL: "low"
+      SYSTEM_PROMPT: "You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth."
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 6
       start_period: 60s
+    depends_on:
+      vllm:
+        condition: service_healthy
+
   agent:
     build:
       context: agent
@@ -53,18 +87,28 @@ services:
     command: ["--server"]
     ports:
       - 8001:8001
-    env_file:
-      - env.example
+    environment:
+      SPECTRUM_SERVER_MCP_SERVER: "http://host.docker.internal:8000"
+      SPECTRUM_SERVER_MCP_ROUTE: "/llm/mcp/"
+      LLM_API_KEY: "my-key"
+      HOST_NAME: "host.docker.internal"
+      LLM_API: "http://vllm:8888/v1"
+      LLM_MODEL: "gpt-oss-20b"
+      REASONING_LEVEL: "low"
+      SYSTEM_PROMPT: "You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth."
     volumes:
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       vllm:
         condition: service_healthy
       spectrum_server:
         condition: service_healthy
+
   mongodb:
     image: mongo:8.0
+    container_name: mongodb
     ports:
-      - 27018:27018      
-    command: mongod --port 27018    
-
+      - 27018:27018
+    command: mongod --port 27018

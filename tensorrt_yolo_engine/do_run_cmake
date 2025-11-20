@@ -6,10 +6,11 @@
 display_help()
 {
     printf "\n"
-    printf "USAGE: ./do_run_cmake -t [TARGET] -c [CUDA-PATH] -v -h\n"
+    printf "USAGE: ./do_run_cmake -t [TARGET] -c [CUDA-PATH] -r [RADIO] -v -h\n"
     printf "\n"
     printf "  [-t] [REQUIRED] Target to build\n"
     printf "  [-c] [REQUIRED] Path to CUDA\n"
+    printf "  [-r] [OPTIONAL] Radio type (default: ettus_b210)\n"
     printf "  [-v] [OPTIONAL] When set, verbose logging will be enabled\n"
     printf "  [-h] [OPTIONAL] Display help\n"
     printf "\n"
@@ -18,18 +19,26 @@ display_help()
     printf "  > tye_sp => TYE stream processor\n"
     printf "  > tye_fp => TYE file processor\n"
     printf "\n"
+    printf "RADIO [-r] OPTIONS (only applies to tye_sp)\n"
+    printf "\n"
+    printf "  > ettus_b210   => Ettus B210 SDR (default)\n"
+    printf "  > signalhound  => Signal Hound SM series SDR\n"
+    printf "  > both         => Support both radio types\n"
+    printf "\n"
 }
 
 #---------------------------------------------------------------------------------------------------------------------------
 
 BUILD_TARGET=""
 CUDA_PATH=""
+RADIO_TYPE=""
 WITH_VERBOSE_LOGGING="WITH_VERBOSE_LOGGING=False"
 
 build_with_verbose_logging=false
 do_display_help=false
+radio_type="ettus_b210"
 
-while getopts "t:c:vh" opt;
+while getopts "t:c:r:vh" opt;
 do
     case ${opt} in
 
@@ -37,6 +46,9 @@ do
            ;;
 
         c) CUDA_PATH="CUDA_TOOLKIT_ROOT_DIR=$OPTARG"
+           ;;
+
+        r) radio_type="$OPTARG"
            ;;
 
         v) build_with_verbose_logging=true
@@ -67,10 +79,32 @@ then
     exit
 fi
 
+# Set radio type options based on selection
+if   [ "${radio_type}" == "ettus_b210" ];  then
+    RADIO_OPT1="USE_UHD_B210=ON"
+    RADIO_OPT2="USE_SIGNALHOUND=OFF"
+elif [ "${radio_type}" == "signalhound" ]; then
+    RADIO_OPT1="USE_UHD_B210=OFF"
+    RADIO_OPT2="USE_SIGNALHOUND=ON"
+elif [ "${radio_type}" == "both" ];        then
+    RADIO_OPT1="USE_UHD_B210=ON"
+    RADIO_OPT2="USE_SIGNALHOUND=ON"
+else
+    RADIO_OPT1="USE_UHD_B210=ON"
+    RADIO_OPT2="USE_SIGNALHOUND=OFF"  # Default to Ettus B210
+fi
+
 printf "\n"
 
 if   [ "${build_target}" == "tye_sp" ]; then printf "[OK] Build target => TYE STREAM PROCESSOR\n"
 elif [ "${build_target}" == "tye_fp" ]; then printf "[OK] Build target => TYE FILE PROCESSOR\n"
+fi
+
+if [ "${build_target}" == "tye_sp" ]; then
+    if   [ "${radio_type}" == "ettus_b210" ];  then printf "[OK] Radio type   => ETTUS B210\n"
+    elif [ "${radio_type}" == "signalhound" ]; then printf "[OK] Radio type   => SIGNAL HOUND SM SERIES\n"
+    elif [ "${radio_type}" == "both" ];        then printf "[OK] Radio type   => BOTH (ETTUS B210 + SIGNAL HOUND)\n"
+    fi
 fi
 
 if [ "${build_with_verbose_logging}" = true ];
@@ -88,7 +122,7 @@ rm -fR build
 mkdir build
 cd build
 
-cmake -D$CUDA_PATH -D$BUILD_TARGET -D$WITH_VERBOSE_LOGGING ../
+cmake -D$CUDA_PATH -D$BUILD_TARGET -D$RADIO_OPT1 -D$RADIO_OPT2 -D$WITH_VERBOSE_LOGGING ../
 
 #---------------------------------------------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------------------------------

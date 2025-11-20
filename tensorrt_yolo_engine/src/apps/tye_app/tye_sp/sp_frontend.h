@@ -7,8 +7,16 @@
 #include "tye_buffer.h"
 #include "tye_buffer_pool.h"
 #include "config.h"
-#include "sh_sm_radio.h"
 #include "engine.h"
+
+// Include radio drivers based on compile-time selection
+#ifdef USE_SIGNALHOUND
+#include "sh_sm_radio.h"
+#endif
+
+#ifdef USE_UHD_B210
+#include "uhd_b210_radio.h"
+#endif
 
 //--------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------
@@ -46,7 +54,12 @@ private: //=====================================================================
     } state;
 
     // private variables
+    // Radio pointer - type depends on compile-time selection
+#ifdef USE_UHD_B210
+    uhd_b210_radio    *this_p_radio;
+#else
     sh_sm_radio       *this_p_radio;
+#endif
     std::thread       *this_p_mgr_thread;
     tye_buffer        *this_p_stream_buffer;
     tye_buffer_pool   *this_p_buffer_pool;
