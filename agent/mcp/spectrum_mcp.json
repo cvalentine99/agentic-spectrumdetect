@@ -1,0 +1,19 @@
+{
+  "schema": "1.0",
+  "name": "Spectrum MCP",
+  "description": "FastAPI MCP server for SDR control, spectrum measurement, dashboard streaming, and detections.",
+  "url": "http://localhost:8000/llm/mcp/",
+  "//hint_url": "For Agent Builder, change this to your reachable host, e.g., https://your-domain.example.com/llm/mcp/",
+  "tools": "discover",
+  "headers": {
+    "//hint": "Set MCP_USER/MCP_PASSWORD in your environment and replace this with your auth scheme (e.g., Basic base64).",
+    "Authorization": "Basic ${MCP_USER}:${MCP_PASSWORD}"
+  },
+  "metadata": {
+    "contact": "ops@example.com",
+    "workflow_id": "wf_6920b79be2a081908d5c9b0ee4f3b4a804fb2cf7f2da633b",
+    "auth_user_env": "MCP_USER",
+    "auth_password_env": "MCP_PASSWORD",
+    "notes": "Adjust URL/headers for your deployment. Provide credentials via environment variables if required."
+  }
+}

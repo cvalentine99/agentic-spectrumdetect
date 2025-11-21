@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 from spectrum_server.radios_work import Radio
 from spectrum_server.schema.radios import mongoOutput, timeWaitOutput, timeDict, tuneFrequencyOutput
+from spectrum_server.spectrum_stream import SpectrumFrame, spectrum_stream
 
 router = APIRouter()
 
@@ -47,3 +48,17 @@ async def tune_freq(center_freq_hz: int = Query(..., description="Frequnecy in H
 async def get_results(center_freq_hz: int = Query(..., description="Frequnecy in Hz")):
     radio = Radio()
     return radio.get_results(center_freq_hz)
+
+
+@router.post(
+    "/spectrum/publish",
+    description="Publish a spectrum frame to all connected WebSocket subscribers.",
+    operation_id="publish_spectrum_frame",
+    status_code=202,
+)
+async def publish_spectrum_frame(frame: SpectrumFrame):
+    """
+    Ingest a computed spectrum frame (e.g., from the radio daemon) and broadcast it over the websocket stream.
+    """
+    await spectrum_stream.publish_frame(frame)
+    return {"queued": True, "subscribers": spectrum_stream.connection_count}

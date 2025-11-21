@@ -4,14 +4,10 @@ import ssl
 import httpx
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
+from pydantic_ai.models.openai import OpenAIModel, OpenAIResponsesModelSettings
 from pydantic_ai.providers.openai import OpenAIProvider
-from rich.live import Live
 from rich.markdown import Markdown
 from rich.console import Console
-from rich.text import Text
-from rich.panel import Panel
 
 
 class AgentRunner:
@@ -46,8 +42,12 @@ class AgentRunner:
                 logfire.configure(send_to_logfire=False)
                 logfire.instrument_pydantic_ai()
                 logfire.instrument_httpx(capture_all=True)
-            except:
+            except ImportError:
+                # logfire not installed, skip telemetry instrumentation
                 pass
+            except Exception as e:
+                # Log other errors but don't fail startup
+                print(f"Warning: Failed to configure telemetry: {e}")
 
         self.console = Console()
 
@@ -68,13 +68,15 @@ class AgentRunner:
                 model_name=self.llm_model,
                 provider=local_provider,
             )
-            model_settings = OpenAIResponsesModelSettings(openai_reasoning_effort=self.llm_reasoning_level,openai_reasoning_summary='concise')
-            local_model2 = OpenAIResponsesModel(
-                model_name=self.llm_model,
-                provider=local_provider,
+            model_settings = OpenAIResponsesModelSettings(
+                openai_reasoning_effort=self.llm_reasoning_level,
+                openai_reasoning_summary='concise'
             )
             agent = Agent(
-                model=local_model, model_settings=model_settings, toolsets=[server], system_prompt=self.system_prompt
+                model=local_model,
+                model_settings=model_settings,
+                toolsets=[server],
+                system_prompt=self.system_prompt
             )
 
             self.console.print(

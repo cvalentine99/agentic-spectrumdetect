@@ -60,14 +60,22 @@ services:
     image: spectrum_server:latest
     container_name: spectrum_server
     network_mode: "host"
+    # Note: Using specific device access instead of privileged mode for security
+    # privileged: true  # REMOVED - use device mapping below instead
     command: ["python", "-m", "spectrum_server"]
     environment:
-      HOST_NAME: "localhost"
-      LLM_API: "http://localhost:8888/v1"
-      LLM_MODEL: "gpt-oss-20b"
-      LLM_API_KEY: "my-key"
-      REASONING_LEVEL: "low"
-      SYSTEM_PROMPT: "You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth."
+      HOST_NAME: "${HOST_NAME:-localhost}"
+      LLM_API: "${LLM_API:-http://localhost:8888/v1}"
+      LLM_MODEL: "${LLM_MODEL:-gpt-oss-20b}"
+      LLM_API_KEY: "${LLM_API_KEY:?LLM_API_KEY must be set}"
+      REASONING_LEVEL: "${REASONING_LEVEL:-low}"
+      SDR_DEVICE_SERIAL: "${SDR_DEVICE_SERIAL:-}"
+      SDR_BACKEND: "${SDR_BACKEND:-uhd}"
+      SYSTEM_PROMPT: "${SYSTEM_PROMPT:-You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth.}"
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - /usr/share/uhd:/usr/share/uhd:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -88,14 +96,14 @@ services:
     ports:
       - 8001:8001
     environment:
-      SPECTRUM_SERVER_MCP_SERVER: "http://host.docker.internal:8000"
-      SPECTRUM_SERVER_MCP_ROUTE: "/llm/mcp/"
-      LLM_API_KEY: "my-key"
-      HOST_NAME: "host.docker.internal"
-      LLM_API: "http://vllm:8888/v1"
-      LLM_MODEL: "gpt-oss-20b"
-      REASONING_LEVEL: "low"
-      SYSTEM_PROMPT: "You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth."
+      SPECTRUM_SERVER_MCP_SERVER: "${SPECTRUM_SERVER_MCP_SERVER:-http://host.docker.internal:8000}"
+      SPECTRUM_SERVER_MCP_ROUTE: "${SPECTRUM_SERVER_MCP_ROUTE:-/llm/mcp/}"
+      LLM_API_KEY: "${LLM_API_KEY:?LLM_API_KEY must be set}"
+      HOST_NAME: "${HOST_NAME:-host.docker.internal}"
+      LLM_API: "${LLM_API:-http://vllm:8888/v1}"
+      LLM_MODEL: "${LLM_MODEL:-gpt-oss-20b}"
+      REASONING_LEVEL: "${REASONING_LEVEL:-low}"
+      SYSTEM_PROMPT: "${SYSTEM_PROMPT:-You are an expert spectrum analyzer scientific measurement assistant. You can tune a receiver to different parts of the spectrum and detect intermittent or continuous energy. You can determine the RSSI measurement of the energy as well as the spectrogram_diff score of the overall captured bandwidth.}"
     volumes:
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
     extra_hosts:

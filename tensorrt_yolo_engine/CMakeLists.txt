@@ -10,7 +10,7 @@ if ( ${NVIDIA_JETSON} )
 endif()
 
 # set additional C++ build flags
-set( CMAKE_CXX_STANDARD 17 )
+set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -ffast-math -Wno-deprecated-declarations" )
 
 # set additional CUDA build flags
@@ -112,7 +112,23 @@ endif()
 include_directories( ${CUDA_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${OpenGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS}
                      ${glfw3_INCLUDE_DIRS} ${MONGODB_BSON_INCLUDE_DIRS} ${MONGODB_CLIENT_INCLUDE_DIRS}
                      src/common/cuda/spectrogram src/common/cuda/fft_bins_proc src/common/cuda/rssi
+                     src/common/rapidjson
                      src/apps/tye_app/tye_lib src/apps/tye_app )
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZMQ REQUIRED libzmq)
+
+# spectrum_core static library (GPU FFT/pipeline utilities)
+set( SPECTRUM_CORE_SRC
+     src/apps/spectrum_core/spectrum_core.cu )
+cuda_add_library( spectrum_core STATIC ${SPECTRUM_CORE_SRC} )
+set_target_properties( spectrum_core PROPERTIES CUDA_ARCHITECTURES "${BUILD_CUDA_ARCHITECTURES}" CXX_STANDARD 20 )
+target_include_directories( spectrum_core PUBLIC src/apps/spectrum_core )
+target_link_libraries( spectrum_core PUBLIC cufft )
+
+add_executable( spectrum_core_server src/apps/spectrum_core/spectrum_core_server.cpp )
+target_include_directories( spectrum_core_server PRIVATE ${ZMQ_INCLUDE_DIRS} )
+target_link_libraries( spectrum_core_server PRIVATE spectrum_core ${ZMQ_LIBRARIES} )
 
 # set output directory for all built targets
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
@@ -185,7 +201,7 @@ if ( USE_UHD_B210 )
     list( APPEND RADIO_LIBS ${UHD_LIBRARIES} )
 endif()
 
-set( TYE_APP_LIBS ${CUDA_LIBS} ${TENSORRT_LIBS} ${OpenCV_LIBS} ${GL_LIBS} ${DB_LIBS} ${RADIO_LIBS} )
+set( TYE_APP_LIBS ${CUDA_LIBS} ${TENSORRT_LIBS} ${OpenCV_LIBS} ${GL_LIBS} ${DB_LIBS} ${RADIO_LIBS} spectrum_core )
 
 cuda_add_executable(   ${TYE_APP_NAME} ${TYE_APP_SRC}  )
 set_target_properties( ${TYE_APP_NAME} PROPERTIES CUDA_ARCHITECTURES "${BUILD_CUDA_ARCHITECTURES}" )

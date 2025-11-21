@@ -74,19 +74,19 @@ async def index() -> FileResponse:
 
 
 @app.get('/typescript.min.js')
-async def main_ts() -> FileResponse:
+async def get_typescript_lib() -> FileResponse:
     """Get the typescript library"""
     return FileResponse((THIS_DIR / 'typescript.min.js'), media_type='text/plain')
 
 
 @app.get('/bootstrap.min.css')
-async def main_ts() -> FileResponse:
+async def get_bootstrap_css() -> FileResponse:
     """Get the bootstrap css"""
     return FileResponse((THIS_DIR / 'bootstrap.min.css'), media_type='text/css')
 
 
 @app.get('/chat_app.ts')
-async def main_ts() -> FileResponse:
+async def get_chat_app_ts() -> FileResponse:
     """Get the raw typescript code, it's compiled in the browser, forgive me."""
     return FileResponse((THIS_DIR / 'chat_app.ts'), media_type='text/plain')
 

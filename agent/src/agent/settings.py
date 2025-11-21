@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     SPECTRUM_SERVER_MCP_ROUTE: str = Field(
         description="URL route to reach the Spectrum_Server MCP", default="/llm/mcp"
     )
-    LLM_API_KEY: str = Field(description="The API key for authenticating to the LLM", default="my-key")
+    LLM_API_KEY: str = Field(
+        description="The API key for authenticating to the LLM (REQUIRED - no default for security)"
+    )
     LLM_API: str = Field(
         description="The URL for the LLM API",
         default="http://vllm:8888/v1",
